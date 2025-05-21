@@ -1,0 +1,227 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f9f9f9;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* App container */
+.app-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-top: 20px;
+}
+
+header h1 {
+    font-size: 28px;
+    margin-bottom: 8px;
+    color: #4a90e2;
+}
+
+header p {
+    font-size: 16px;
+    color: #666;
+}
+
+/* Main content */
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Upload area */
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    background-color: #fff;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #4a90e2;
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #999;
+    padding: 20px;
+    text-align: center;
+}
+
+.upload-placeholder svg {
+    margin-bottom: 15px;
+}
+
+/* Camera container */
+.camera-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+#camera-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Button styles */
+.button-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.btn.primary {
+    background-color: #4a90e2;
+    color: white;
+}
+
+.btn.primary:hover {
+    background-color: #3a80d2;
+}
+
+.btn.secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.btn.secondary:hover {
+    background-color: #e0e0e0;
+}
+
+.btn.tertiary {
+    background-color: transparent;
+    color: #4a90e2;
+    border: 1px solid #4a90e2;
+}
+
+.btn.tertiary:hover {
+    background-color: rgba(74, 144, 226, 0.1);
+}
+
+/* Processing container */
+.processing-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(74, 144, 226, 0.2);
+    border-radius: 50%;
+    border-top-color: #4a90e2;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Result container */
+.result-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.result-image-container {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+#result-image {
+    width: 100%;
+    display: block;
+}
+
+.result-actions {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px 0;
+    color: #999;
+    font-size: 14px;
+}
+
+/* Responsive adjustments for iPhone */
+@media (max-width: 428px) {
+    header {
+        margin-bottom: 20px;
+        padding-top: 10px;
+    }
+
+    header h1 {
+        font-size: 24px;
+    }
+
+    .upload-area {
+        height: 250px;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        font-size: 15px;
+    }
+}

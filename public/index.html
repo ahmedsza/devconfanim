@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Photo Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Ensure PWA compatibility -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#4a90e2">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Anime Photo Generator</h1>
+            <p>Transform your photos into anime style with QR codes</p>
+        </header>
+
+        <main>
+            <div class="upload-container">
+                <div id="upload-area" class="upload-area">
+                    <div id="camera-container" class="camera-container">
+                        <!-- Camera preview will be shown here -->
+                        <video id="camera-preview" autoplay playsinline></video>
+                    </div>
+                    <div class="upload-placeholder">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <p>Tap to take a photo or select from gallery</p>
+                    </div>
+                    <input type="file" id="file-input" accept="image/*" capture="user" hidden>
+                </div>
+                <div class="button-container">
+                    <button id="take-photo-btn" class="btn primary">Take Photo</button>
+                    <button id="upload-photo-btn" class="btn secondary">Choose from Gallery</button>
+                </div>
+            </div>
+
+            <div class="processing-container" style="display: none;">
+                <div class="spinner"></div>
+                <p>Transforming your photo into anime style...</p>
+            </div>
+
+            <div class="result-container" style="display: none;">
+                <div class="result-image-container">
+                    <img id="result-image" src="" alt="Processed anime image with QR code">
+                </div>
+                <div class="result-actions">
+                    <button id="save-btn" class="btn primary">Save to Camera Roll</button>
+                    <button id="share-btn" class="btn secondary">Share</button>
+                    <button id="new-photo-btn" class="btn tertiary">Take Another Photo</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Created for DevConf 2025</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
