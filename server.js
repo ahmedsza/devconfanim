@@ -27,7 +27,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Create temp directory if it doesn't exist
-const tempDir = path.join(__dirname, 'temp');
+// I want tempdir to be created in a mounted volume
+// so that it can be shared between multiple instances
+
+let imagelocation='/imageshare';
+const tempDir = path.join(imagelocation, 'temp');
+// const tempDir = path.join(__dirname, 'temp');
+
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir);
 }
@@ -107,7 +113,8 @@ async function generateAnimeImage(imageBuffer) {
       // generate a unique ID for this image processing
       const imageId2 = uuidv4();
       // save the image to a file
-      fs.writeFileSync(`image-${imageId2}.png`, image_bytes);
+      // write it to the tempdir
+      fs.writeFileSync(path.join(tempDir, `image-${imageId2}.png`), image_bytes);
       // return the image buffer
       return image_bytes;
     } else {
