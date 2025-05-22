@@ -18,8 +18,6 @@ const sharp = require('sharp');
 const fs = require('fs');
 const OpenAI = require("openai").default;
 const { toFile } = require("openai");
-const axios = require("axios");
-const FormData = require("form-data");
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -45,10 +43,8 @@ let credential, blobServiceClient, containerClient, openAIClient;
 
 try {
   credential = new DefaultAzureCredential();
-  const scope = "https://cognitiveservices.azure.com/.default";
-const azureADTokenProvider = getBearerTokenProvider(credential, scope);
-  const deployment = "gpt-image-1";
-const apiVersion = "2025-04-01-preview";
+ 
+
   if (process.env.STORAGE_ACCOUNT_NAME) {
     blobServiceClient = new BlobServiceClient(
       `https://${process.env.STORAGE_ACCOUNT_NAME}.blob.core.windows.net`,
@@ -60,15 +56,11 @@ const apiVersion = "2025-04-01-preview";
     console.log('STORAGE_ACCOUNT_NAME not provided, Azure Blob Storage will not be used');
   }
   
-  if (process.env.AZURE_OPENAI_ENDPOINT) {
-    // openAIClient =  new OpenAI();
-    openAIClient =new AzureOpenAI({ azureADTokenProvider, deployment, apiVersion }
-    
-
-    )
-    console.log('Azure OpenAI connected');
+  if (process.env.OPENAI_API_KEY) {
+    openAIClient =  new OpenAI();
+    console.log('OpenAI connected');
   } else {
-    console.log('AZURE_OPENAI_ENDPOINT not provided, Azure OpenAI will not be used');
+    console.log('OPENAI_ENDPOINT not provided, Azure OpenAI will not be used');
   }
 } catch (error) {
   console.error('Error setting up Azure services:', error);
@@ -90,57 +82,33 @@ async function generateAnimeImage(imageBuffer) {
       .resize({ width: 1024, height: 1024, fit: 'inside' })
       .toBuffer();
 
-    // Create a temporary file for the image
-    //const tempImagePath = path.join(__dirname, 'temp.png');
-    //fs.writeFileSync(tempImagePath, resizedImage);
+    if (!openAIClient) {
+      throw new Error('OpenAI client not configured');
+    }
 
-    try {
-      // Get Azure AD token using DefaultAzureCredential
-      const credential = new DefaultAzureCredential();
-      const tokenResponse = await credential.getToken("https://cognitiveservices.azure.com/.default");
-      
-      // Prepare API URL
-      const endpoint = process.env.AZURE_OPENAI_ENDPOINT || "https://ahmsimagegen.openai.azure.com/";
-      const deployment = "gpt-image-1";
-      const apiVersion = "2025-04-01-preview";
-      const editsPath = `openai/deployments/${deployment}/images/edits`;
-      const params = `?api-version=${apiVersion}`;
-      const editsUrl = `${endpoint}${editsPath}${params}`;
+    const prompt = "Convert this photo to high-quality anime style art, keep the same pose and appearance";
 
-      // Prepare form data for the request
-      const formData = new FormData();
-      formData.append("prompt", "Convert this photo to high-quality anime style art, keep the same pose and appearance");
-      formData.append("n", "1");
-      formData.append("size", "1024x1024");
-      formData.append("quality", "medium");
-      formData.append("image", resizedImage, "temp.png");
+    const result = await openAIClient.images.edit({
+      model: "gpt-image-1",
+      image: await toFile(resizedImage, "temp.png", {
+        type: "image/png",
+      }),
+      prompt: prompt,
+    });
 
-      console.log(`Sending image edit request to ${editsUrl}`);
-      console.log(`Bearer token: ${tokenResponse.token}`);
-      // Make the API call
-      const editResponse = await axios.post(editsUrl, formData, { 
-        headers: {
-          'Authorization': `Bearer ${tokenResponse.token}`,
-          ...formData.getHeaders()
-        }
-      });
-
-      // Process the response
-      if (editResponse.data && editResponse.data.data && editResponse.data.data.length > 0) {
-        // Extract base64 image data
-        const image_base64 = editResponse.data.data[0].b64_json;
-        const image_bytes = Buffer.from(image_base64, "base64");
-        
-        // Return the image buffer
-        return image_bytes;
-      } else {
-        throw new Error('No image was generated');
-      }
-    } finally {
-      // Clean up temporary file
-      // if (fs.existsSync(tempImagePath)) {
-      //   fs.unlinkSync(tempImagePath);
-      // }
+    if (result.data && result.data.length > 0) {
+      // Download the generated image
+      const image_base64 = result.data[0].b64_json;
+      const image_bytes = Buffer.from(image_base64, "base64");
+      // generate a unique ID for this image processing
+      const imageId2 = uuidv4();
+      // save the image to a file
+      // write it to the tempdir
+     // fs.writeFileSync(path.join(tempDir, `image-${imageId2}.png`), image_bytes);
+      // return the image buffer
+      return image_bytes;
+    } else {
+      throw new Error('No image was generated');
     }
   } catch (error) {
     console.error('Error generating anime image:', error);

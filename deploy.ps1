@@ -101,3 +101,83 @@ az webapp deploy --resource-group $resourceGroup --name $appName --src-path $zip
     --settings NODE_ENV=production WEBSITE_NODE_DEFAULT_VERSION=~20 OPENAI_API_KEY=$OPENAI_API_KEY STORAGE_ACCOUNT_NAME=$storageAccount WEBSITE_RUN_FROM_PACKAGE="1"
 
 Write-Host "Deployment complete! Visit: https://$appName.azurewebsites.net"
+
+
+## OpenAI deployment and model steps
+
+
+$openaiName = "ENTERNAME"
+$openaiSku = "S0"
+$modelDeploymentName = "gpt-image-1"
+$modelName = "gpt-image-1"
+$ailocation="uaenorth"
+
+Write-Host "Creating Azure OpenAI resource..."
+az cognitiveservices account create `
+    --name $openaiName `
+    --resource-group $resourceGroup `
+    --location $ailocation `
+    --kind OpenAI `
+    --sku $openaiSku `
+    --custom-domain $openaiName
+
+
+Write-Host "Azure OpenAI resource created: $openaiName"
+
+# Get the endpoint and key for the OpenAI resource
+$openaiEndpoint = az cognitiveservices account show `
+    --name $openaiName `
+    --resource-group $resourceGroup `
+    --query properties.endpoint `
+    --output tsv
+
+Write-Host "Azure OpenAI endpoint: $openaiEndpoint"
+
+
+
+# give the current user access to the OpenAI resource
+az role assignment create `
+    --role "Cognitive Services Contributor" `
+    --assignee (az ad signed-in-user show --query id -o tsv) `
+    --scope (az cognitiveservices account show --name $openaiName --resource-group $resourceGroup --query id -o tsv)
+
+# give the appservice managed identity access to the OpenAI resource
+az role assignment create `
+    --role "Cognitive Services Contributor" `
+    --assignee (az webapp identity assign --name $appName --resource-group $resourceGroup --query principalId -o tsv) `
+    --scope (az cognitiveservices account show --name $openaiName --resource-group $resourceGroup --query id -o tsv)
+
+# give azure ai user permissions to the openai ressouce to both the current user and the appservice managed identity
+# give the current user access to the OpenAI resource
+az role assignment create `
+    --role "Azure AI User" `
+    --assignee (az ad signed-in-user show --query id -o tsv) `
+    --scope (az cognitiveservices account show --name $openaiName --resource-group $resourceGroup --query id -o tsv)
+
+# give the appservice managed identity access to the OpenAI resource
+az role assignment create `
+    --role "Azure AI User" `
+    --assignee (az webapp identity assign --name $appName --resource-group $resourceGroup --query principalId -o tsv) `
+    --scope (az cognitiveservices account show --name $openaiName --resource-group $resourceGroup --query id -o tsv)
+
+
+# Deploy the gpt-1 model 
+Write-Host "Deploying DALL-E model..."
+az cognitiveservices account deployment create `
+    --name $openaiName `
+    --resource-group $resourceGroup `
+        --deployment-name $modelDeploymentName `
+        --model-name $modelName `
+        --model-version "2025-04-15" `
+        --model-format OpenAI `
+        --sku "GlobalStandard" `
+        --capacity 1 
+
+
+
+Write-Host "gpt image model deployed successfully!"
+
+  az webapp config appsettings set `
+    --resource-group $resourceGroup `
+    --name $appName `
+    --settings NODE_ENV=production WEBSITE_NODE_DEFAULT_VERSION=~20 AZURE_OPENAI_ENDPOINT=$openaiEndpoint STORAGE_ACCOUNT_NAME=$storageAccount WEBSITE_RUN_FROM_PACKAGE="1"
