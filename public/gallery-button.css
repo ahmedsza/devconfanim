@@ -1,0 +1,23 @@
+/* Header gallery button styling */
+header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding-bottom: 20px;
+}
+
+#main-gallery-btn {
+    margin-top: 10px;
+    background-color: #5c6bc0;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#main-gallery-btn:hover {
+    background-color: #3f51b5;
+}

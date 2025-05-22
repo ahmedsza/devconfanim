@@ -203,6 +203,63 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
   }
 });
 
+// List gallery images endpoint
+app.get('/api/gallery', async (req, res) => {
+  try {
+    if (!containerClient) {
+      return res.status(500).json({ error: 'Azure Blob Storage not configured' });
+    }
+    const images = [];
+    for await (const blob of containerClient.listBlobsFlat()) {
+      // Only include images (e.g., .jpg, .png)
+      if (blob.name.match(/\.(jpg|jpeg|png)$/i)) {
+        images.push({
+          id: blob.name,
+          url: `/api/images/${encodeURIComponent(blob.name)}`
+        });
+      }
+    }
+    res.json(images);
+  } catch (err) {
+    console.error('Error listing gallery images:', err);
+    res.status(500).json({ error: 'Failed to list images' });
+  }
+});
+
+// Endpoint to serve individual images by blob name
+app.get('/api/images/:blobName', async (req, res) => {
+  try {
+    if (!containerClient) {
+      return res.status(500).json({ error: 'Azure Blob Storage not configured' });
+    }
+    
+    const blobName = decodeURIComponent(req.params.blobName);
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    
+    // Check if blob exists
+    const exists = await blockBlobClient.exists();
+    if (!exists) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    // Download the blob content
+    const downloadResponse = await blockBlobClient.download(0);
+    
+    // Set appropriate content type
+    if (blobName.endsWith('.jpg') || blobName.endsWith('.jpeg')) {
+      res.set('Content-Type', 'image/jpeg');
+    } else if (blobName.endsWith('.png')) {
+      res.set('Content-Type', 'image/png');
+    }
+    
+    // Stream the blob content to the response
+    downloadResponse.readableStreamBody.pipe(res);
+  } catch (error) {
+    console.error('Error serving image:', error);
+    res.status(500).json({ error: 'Failed to serve image' });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

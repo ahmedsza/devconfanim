@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - Anime Photo Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .gallery-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .gallery-image {
+            width: 300px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .gallery-image:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Gallery</h1>
+            <button onclick="window.location.href='index.html'" class="btn secondary">Back to App</button>
+        </header>
+        <main>
+            <div id="gallery" class="gallery-container">
+                <p>Loading images...</p>
+            </div>
+        </main>
+        <footer>
+            <p>Created for DevConf 2025</p>
+        </footer>
+    </div>
+    <script>
+    async function loadGallery() {
+        const gallery = document.getElementById('gallery');
+        try {
+            const res = await fetch('/api/gallery');
+            const images = await res.json();
+            
+            if (!Array.isArray(images) || images.length === 0) {
+                gallery.innerHTML = '<p>No images found.</p>';
+                return;
+            }
+            
+            gallery.innerHTML = '';
+            images.forEach(image => {
+                const img = document.createElement('img');
+                img.src = image.url;
+                img.className = 'gallery-image';
+                img.alt = 'Anime Image';
+                img.loading = 'lazy';
+                
+                // Create container for image
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'gallery-image-container';
+                imgContainer.appendChild(img);
+                
+                gallery.appendChild(imgContainer);
+            });
+        } catch (err) {
+            console.error('Error loading gallery:', err);
+            gallery.innerHTML = '<p>Error loading images.</p>';
+        }
+    }
+    
+    loadGallery();
+    </script>
+</body>
+</html>

@@ -35,6 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
     shareBtn.addEventListener('click', shareImage);
     newPhotoBtn.addEventListener('click', resetApp);
     
+    // Gallery button in header
+    document.getElementById('main-gallery-btn').addEventListener('click', function() {
+        window.location.href = 'gallery.html';
+    });
+    
+    // Gallery button in results container
+    document.getElementById('gallery-btn').addEventListener('click', function() {
+        window.location.href = 'gallery.html';
+    });
+    
     // Initialize the app based on device capabilities
     initializeApp();
     
