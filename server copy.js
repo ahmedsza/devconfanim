@@ -30,13 +30,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 // I want tempdir to be created in a mounted volume
 // so that it can be shared between multiple instances
 
-// let imagelocation='/home';
-// const tempDir = path.join(imagelocation, 'temp');
-// // const tempDir = path.join(__dirname, 'temp');
+let imagelocation='/imageshare';
+const tempDir = path.join(imagelocation, 'temp');
+// const tempDir = path.join(__dirname, 'temp');
 
-// if (!fs.existsSync(tempDir)) {
-//   fs.mkdirSync(tempDir);
-// }
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir);
+}
 
 // Azure Storage setup
 let credential, blobServiceClient, containerClient, openAIClient;
@@ -81,18 +81,28 @@ async function generateAnimeImage(imageBuffer) {
     const resizedImage = await sharp(imageBuffer)
       .resize({ width: 1024, height: 1024, fit: 'inside' })
       .toBuffer();
+    //save resized image as png
+    const imageId = uuidv4();
+    const imageFile = path.join(tempDir, `${imageId}-original.png`);
+    fs.writeFileSync(imageFile, resizedImage);
 
+    // For actual OpenAI processing
     if (!openAIClient) {
       throw new Error('OpenAI client not configured');
     }
 
-    const prompt = "Convert this photo to high-quality anime style art, keep the same pose and appearance";
+    // Convert image to base64
+    const base64Image = resizedImage.toString('base64');
+    
+
+    
+    const prompt = "Convert this photo to high-quality anime style art, keep the same pose and appearance.";
 
     const result = await openAIClient.images.edit({
       model: "gpt-image-1",
-      image: await toFile(resizedImage, "temp.png", {
-        type: "image/png",
-      }),
+      image: await toFile(fs.createReadStream(imageFile), null, {
+          type: "image/png",
+      }), 
       prompt: prompt,
     });
 
@@ -104,7 +114,7 @@ async function generateAnimeImage(imageBuffer) {
       const imageId2 = uuidv4();
       // save the image to a file
       // write it to the tempdir
-     // fs.writeFileSync(path.join(tempDir, `image-${imageId2}.png`), image_bytes);
+      fs.writeFileSync(path.join(tempDir, `image-${imageId2}.png`), image_bytes);
       // return the image buffer
       return image_bytes;
     } else {
@@ -173,13 +183,13 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
     const animeImage = await generateAnimeImage(req.file.buffer);
     
     // Upload the original image to blob storage
-    // const blobName = `${imageId}-original.jpg`;
-    // const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-    // await blockBlobClient.uploadData(req.file.buffer);
+    const blobName = `${imageId}-original.jpg`;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+    await blockBlobClient.uploadData(req.file.buffer);
     
     // Add URL to QR code
-    //const qrCodeContent = blockBlobClient.url;
-    const qrCodeContent = "https://ai.azure.com";
+    const qrCodeContent = blockBlobClient.url;
+    
     // Add QR code to the anime image
     const finalImage = await addQRCodeToImage(animeImage, qrCodeContent);
     
@@ -188,8 +198,8 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
     const finalBlockBlobClient = containerClient.getBlockBlobClient(finalBlobName);
     await finalBlockBlobClient.uploadData(finalImage);
     
-    // // Get URL for the final image
-    // const finalImageUrl = finalBlockBlobClient.url;
+    // Get URL for the final image
+    const finalImageUrl = finalBlockBlobClient.url;
 
     // Return the final image directly
     res.set('Content-Type', 'image/jpeg');
