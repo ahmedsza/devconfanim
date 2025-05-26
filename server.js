@@ -170,20 +170,42 @@ async function addQRCodeToImage(imageBuffer, qrCodeContent) {
     const metadata = await sharp(imageBuffer).metadata();
     const { width, height } = metadata;
     
+     const iconSize = Math.round(Math.min(width, height) * 0.2);
     // Resize QR code to be proportional to the image size
-    const qrSize = Math.min(width, height) * 0.2; // QR code size is 20% of the smallest dimension
-    const qrCodeResized = await sharp(qrCodeBuffer)
-      .resize(Math.round(qrSize), Math.round(qrSize))
+    //const qrSize = Math.min(width, height) * 0.2; // QR code size is 20% of the smallest dimension
+ const qrCodeResized = await sharp(qrCodeBuffer)
+      .resize(iconSize, iconSize)
       .toBuffer();
+
     
+    // read the logo name from env variable
+    const logoName = process.env.LOGO_NAME || 'microsoft-logo.png';
+    const logoPath = path.join(__dirname, 'public', logoName);
+    const logoResized = await sharp(logoPath)
+      .resize(iconSize, iconSize)
+      .toBuffer();
+
+    const padding = 20;
+
+    // Composite: logo bottom left, QR code bottom right
+    const composite = [
+      {
+        input: logoResized,
+        top: height - iconSize - padding,
+        left: padding,
+      },
+      {
+        input: qrCodeResized,
+        top: height - iconSize - padding,
+        left: width - iconSize - padding,
+      }
+    ];
+
     // Composite images together
     const resultImage = await sharp(imageBuffer)
-      .composite([{
-        input: qrCodeResized,
-        gravity: 'southeast', // Position in bottom right
-      }])
+      .composite(composite)
       .toBuffer();
-    
+
     return resultImage;
   } catch (error) {
     console.error('Error adding QR code to image:', error);
@@ -211,7 +233,9 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
     
     // Add URL to QR code
     //const qrCodeContent = blockBlobClient.url;
-    const qrCodeContent = "https://ai.azure.com";
+    // read url from env variable
+    const qrCodeContent = process.env.QR_URL;
+   // const qrCodeContent = "https://ai.azure.com";
     // Add QR code to the anime image
     const finalImage = await addQRCodeToImage(animeImage, qrCodeContent);
     

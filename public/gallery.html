@@ -7,25 +7,155 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         .gallery-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .gallery-image-container {
+            position: relative;
+            aspect-ratio: 1/1;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         
         .gallery-image {
-            width: 300px;
-            height: 300px;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease;
         }
         
         .gallery-image:hover {
             transform: scale(1.05);
         }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .pagination button:hover {
+            background-color: #e9ecef;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination-info {
+            margin: 0 10px;
+        }
+        
+        .empty-gallery {
+            grid-column: span 4;
+            text-align: center;
+            padding: 50px 0;
+        }
+        
+        @media (max-width: 1200px) {
+            .gallery-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .empty-gallery {
+                grid-column: span 3;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .gallery-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .empty-gallery {
+                grid-column: span 2;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .gallery-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .empty-gallery {
+                grid-column: span 1;
+            }
+        }
+        
+        /* Enhanced mobile pagination styles */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 20px 0;
+        gap: 10px;
+        padding: 10px 0;
+    }
+    
+    .pagination button {
+        padding: 8px 16px;
+        border: 1px solid #ccc;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    
+    /* Mobile-optimized pagination */
+    @media (max-width: 768px) {
+        .pagination {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            margin: 0;
+            padding: 15px;
+            z-index: 100;
+        }
+        
+        .pagination button {
+            flex: 1;
+            min-height: 44px; /* Minimum Apple-recommended touch target size */
+            font-size: 16px;
+            padding: 10px;
+        }
+        
+        .pagination-info {
+            font-size: 16px;
+        }
+        
+        /* Add padding to prevent content from being hidden behind fixed pagination */
+        body {
+            padding-bottom: 70px;
+        }
+        
+        /* Make gallery items larger on small screens for better visibility */
+        .gallery-image-container {
+            aspect-ratio: 1/1;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+    }
     </style>
 </head>
 <body>
@@ -36,7 +166,12 @@
         </header>
         <main>
             <div id="gallery" class="gallery-container">
-                <p>Loading images...</p>
+                <p class="empty-gallery">Loading images...</p>
+            </div>
+            <div class="pagination">
+                <button id="prev-btn" disabled>Previous</button>
+                <span class="pagination-info">Page <span id="current-page">1</span> of <span id="total-pages">1</span></span>
+                <button id="next-btn" disabled>Next</button>
             </div>
         </main>
         <footer>
@@ -44,39 +179,168 @@
         </footer>
     </div>
     <script>
+    // Gallery configuration
+    const config = {
+        imagesPerPage: 12,
+        currentPage: 1,
+        totalImages: 0,
+        allImages: []
+    };
+    
     async function loadGallery() {
         const gallery = document.getElementById('gallery');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const currentPageElement = document.getElementById('current-page');
+        const totalPagesElement = document.getElementById('total-pages');
+        
         try {
             const res = await fetch('/api/gallery');
-            const images = await res.json();
+            config.allImages = await res.json();
+            config.totalImages = config.allImages.length;
             
-            if (!Array.isArray(images) || images.length === 0) {
-                gallery.innerHTML = '<p>No images found.</p>';
+            if (!Array.isArray(config.allImages) || config.allImages.length === 0) {
+                gallery.innerHTML = '<p class="empty-gallery">No images found.</p>';
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
                 return;
             }
             
-            gallery.innerHTML = '';
-            images.forEach(image => {
-                const img = document.createElement('img');
-                img.src = image.url;
-                img.className = 'gallery-image';
-                img.alt = 'Anime Image';
-                img.loading = 'lazy';
-                
-                // Create container for image
-                const imgContainer = document.createElement('div');
-                imgContainer.className = 'gallery-image-container';
-                imgContainer.appendChild(img);
-                
-                gallery.appendChild(imgContainer);
+            // Calculate total pages
+            const totalPages = Math.ceil(config.totalImages / config.imagesPerPage);
+            totalPagesElement.textContent = totalPages;
+            
+            // Update pagination buttons
+            prevBtn.disabled = config.currentPage === 1;
+            nextBtn.disabled = config.currentPage === totalPages;
+            
+            // Display current page
+            displayPage(config.currentPage);
+            
+            // Add event listeners for pagination buttons
+            prevBtn.addEventListener('click', () => {
+                if (config.currentPage > 1) {
+                    config.currentPage--;
+                    currentPageElement.textContent = config.currentPage;
+                    displayPage(config.currentPage);
+                    prevBtn.disabled = config.currentPage === 1;
+                    nextBtn.disabled = false;
+                }
+            });
+            
+            nextBtn.addEventListener('click', () => {
+                if (config.currentPage < totalPages) {
+                    config.currentPage++;
+                    currentPageElement.textContent = config.currentPage;
+                    displayPage(config.currentPage);
+                    prevBtn.disabled = false;
+                    nextBtn.disabled = config.currentPage === totalPages;
+                }
             });
         } catch (err) {
             console.error('Error loading gallery:', err);
-            gallery.innerHTML = '<p>Error loading images.</p>';
+            gallery.innerHTML = '<p class="empty-gallery">Error loading images.</p>';
         }
     }
     
+    function displayPage(page) {
+        const gallery = document.getElementById('gallery');
+        gallery.innerHTML = '';
+        
+        // Calculate start and end indices for current page
+        const startIndex = (page - 1) * config.imagesPerPage;
+        const endIndex = Math.min(startIndex + config.imagesPerPage, config.totalImages);
+        
+        // Get images for current page
+        const currentPageImages = config.allImages.slice(startIndex, endIndex);
+        
+        // Display images
+        currentPageImages.forEach(image => {
+            const img = document.createElement('img');
+            img.src = image.url;
+            img.className = 'gallery-image';
+            img.alt = 'Anime Image';
+            img.loading = 'lazy';
+            
+            // Create container for image
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'gallery-image-container';
+            imgContainer.appendChild(img);
+            
+            // Add click event to view full-size image
+            imgContainer.addEventListener('click', () => {
+                window.open(image.url, '_blank');
+            });
+            
+            gallery.appendChild(imgContainer);
+        });
+        
+        // If current page is not fully populated, add empty placeholders
+        const remainingSlots = config.imagesPerPage - currentPageImages.length;
+        if (remainingSlots > 0 && currentPageImages.length > 0) {
+            for (let i = 0; i < remainingSlots; i++) {
+                const placeholderContainer = document.createElement('div');
+                placeholderContainer.className = 'gallery-image-container';
+                placeholderContainer.style.visibility = 'hidden';
+                gallery.appendChild(placeholderContainer);
+            }
+        }
+        
+        // After displaying images, scroll to top on mobile for better UX
+        if (window.innerWidth <= 768) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    
+    // Improve mobile loading experience
+    if (window.innerWidth <= 768) {
+        // On mobile, load fewer images initially for faster display
+        config.imagesPerPage = window.innerWidth <= 480 ? 6 : 9;
+    }
+    
     loadGallery();
+    
+    // Add touch-friendly event listeners for mobile
+    if ('ontouchstart' in window) {
+        // For mobile: Add swipe detection for pagination
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, {passive: true});
+        
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, {passive: true});
+        
+        function handleSwipe() {
+            const swipeThreshold = 100; // minimum distance for swipe
+            
+            if (touchEndX < touchStartX - swipeThreshold) {
+                // Swipe left - go to next page
+                if (!nextBtn.disabled) {
+                    nextBtn.click();
+                }
+            }
+            
+            if (touchEndX > touchStartX + swipeThreshold) {
+                // Swipe right - go to previous page
+                if (!prevBtn.disabled) {
+                    prevBtn.click();
+                }
+            }
+        }
+    }
+    
+    // Recheck layout on orientation change
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            // Adjust layout after orientation change
+            displayPage(config.currentPage);
+        }, 200);
+    });
     </script>
 </body>
 </html>

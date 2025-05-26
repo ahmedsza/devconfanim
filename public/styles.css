@@ -98,6 +98,45 @@ main {
     object-fit: cover;
 }
 
+/* Camera controls styling */
+.camera-controls {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+    opacity: 0.8;
+    transition: opacity 0.3s;
+}
+
+.camera-controls:hover {
+    opacity: 1;
+}
+
+.camera-control-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.camera-control-btn:hover {
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.camera-control-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
 /* Button styles */
 .button-container {
     display: flex;

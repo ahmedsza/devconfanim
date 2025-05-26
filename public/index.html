@@ -25,6 +25,16 @@
                     <div id="camera-container" class="camera-container">
                         <!-- Camera preview will be shown here -->
                         <video id="camera-preview" autoplay playsinline></video>
+                        
+                        <!-- Camera controls overlay -->
+                        <div id="camera-controls" class="camera-controls">
+                            <button id="switch-camera-btn" class="camera-control-btn" title="Switch Camera">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7"></path>
+                                    <path d="M16 5l-4-4v3a4 4 0 004 4h3l-3 3"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="upload-placeholder">
                         <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -33,7 +43,7 @@
                         </svg>
                         <p>Tap to take a photo or select from gallery</p>
                     </div>
-                    <input type="file" id="file-input" accept="image/*" capture="user" hidden>
+                    <input type="file" id="file-input" accept="image/*" hidden>
                 </div>
                 <div class="button-container">
                     <button id="take-photo-btn" class="btn primary">Take Photo</button>
