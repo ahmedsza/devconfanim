@@ -106,12 +106,6 @@ main {
     z-index: 10;
     display: flex;
     gap: 10px;
-    opacity: 0.8;
-    transition: opacity 0.3s;
-}
-
-.camera-controls:hover {
-    opacity: 1;
 }
 
 .camera-control-btn {
@@ -135,6 +129,20 @@ main {
 .camera-control-btn svg {
     width: 24px;
     height: 24px;
+}
+
+/* Make camera controls more visible on mobile */
+@media (max-width: 768px) {
+    .camera-control-btn {
+        width: 54px;
+        height: 54px;
+        background-color: rgba(0, 0, 0, 0.6);
+    }
+    
+    .camera-control-btn svg {
+        width: 30px;
+        height: 30px;
+    }
 }
 
 /* Button styles */

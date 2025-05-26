@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="spinner"></div>
                 <p>Starting camera...</p>
             </div>
-            ${cameraPreview.outerHTML}
+            <video id="camera-preview" autoplay playsinline></video>
             <div id="camera-controls" class="camera-controls">
                 <button id="switch-camera-btn" class="camera-control-btn" title="Switch Camera">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -186,10 +186,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (videoDevices.length > 1) {
                             switchCameraBtn.style.display = 'flex';
                             
-                            // Add event listener to switch camera
-                            switchCameraBtn.addEventListener('click', toggleCamera);
+                            // Remove any existing event listeners first to prevent duplicates
+                            switchCameraBtn.removeEventListener('click', toggleCamera);
+                            
+                            // Add new event listener with explicit event parameter
+                            switchCameraBtn.addEventListener('click', function(e) {
+                                // Stop propagation immediately to prevent triggering upload dialog
+                                e.stopPropagation();
+                                e.preventDefault();
+                                toggleCamera(e);
+                            });
+                            
+                            console.log('Camera switch button enabled for', videoDevices.length, 'cameras');
                         } else {
                             switchCameraBtn.style.display = 'none';
+                            console.log('Camera switch button disabled - only one camera detected');
                         }
                     })
                     .catch(err => {
@@ -197,11 +208,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         switchCameraBtn.style.display = 'none';
                     });
                     
-                // Change take photo button text
+                // Add click event to video for capture with proper event handling
+                cameraPreview.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Stop event from bubbling to parent elements
+                    e.preventDefault();
+                    capturePhoto();
+                });
+                
+                // Restore the other event listeners when camera is stopped
                 takePhotoBtn.textContent = 'Capture Photo';
                 
-                // Add click event to video for capture
-                cameraPreview.addEventListener('click', capturePhoto);
+                // Update take photo button to capture instead of toggle camera
+                takePhotoBtn.removeEventListener('click', startCamera);
+                takePhotoBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    capturePhoto();
+                });
             })
             .catch((error) => {
                 console.error('Error accessing camera:', error);
@@ -228,7 +250,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Function to toggle between front and back cameras
-    function toggleCamera() {
+    function toggleCamera(event) {
+        // Prevent event from bubbling up and triggering other handlers
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        // Log the switch operation for debugging
+        console.log('Switching camera from', currentFacingMode, 'to', 
+                    currentFacingMode === 'user' ? 'environment' : 'user');
+        
         // Toggle the facing mode
         currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
         
@@ -272,28 +304,38 @@ document.addEventListener('DOMContentLoaded', () => {
             takePhotoBtn.textContent = 'Take Photo';
             takePhotoBtn.removeEventListener('click', capturePhoto);
             takePhotoBtn.addEventListener('click', startCamera);
+            
+            // Restore original event listeners
+            uploadArea.addEventListener('click', () => fileInput.click());
+            takePhotoBtn.removeEventListener('click', capturePhoto);
+            takePhotoBtn.addEventListener('click', startCamera);
         }
     }
     
     // Fix the camera capture issue by ensuring the function exists and is properly connected
     function capturePhoto() {
-        if (!stream) return;
+        if (!stream) {
+            console.log('Cannot capture photo: no active camera stream');
+            return;
+        }
+        
+        console.log('Capturing photo...');
         
         try {
             // Create a canvas to capture the frame
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             
-            console.log("Capturing photo, video dimensions:", 
-                        cameraPreview.videoWidth, "x", cameraPreview.videoHeight);
-            
             // Ensure we have proper dimensions
             if (cameraPreview.videoWidth === 0 || cameraPreview.videoHeight === 0) {
-                console.log('Video dimensions not available, retrying...');
-                // Try again in 100ms
+                console.log('Video dimensions not available, retrying in 100ms...');
                 setTimeout(capturePhoto, 100);
                 return;
             }
+            
+            // Log dimensions for debugging
+            console.log("Capturing photo with dimensions:", 
+                        cameraPreview.videoWidth, "x", cameraPreview.videoHeight);
             
             // Set canvas dimensions to match video
             canvas.width = cameraPreview.videoWidth;
@@ -302,9 +344,37 @@ document.addEventListener('DOMContentLoaded', () => {
             // Draw the current frame to canvas
             context.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
             
-            console.log("Image drawn to canvas, converting to blob...");
+            // Show immediate visual feedback that photo was taken
+            // This helps users know something happened
+            const flashEffect = document.createElement('div');
+            flashEffect.style.position = 'absolute';
+            flashEffect.style.top = '0';
+            flashEffect.style.left = '0';
+            flashEffect.style.right = '0';
+            flashEffect.style.bottom = '0';
+            flashEffect.style.backgroundColor = 'white';
+            flashEffect.style.opacity = '0.8';
+            flashEffect.style.zIndex = '100';
+            flashEffect.style.animation = 'flash 0.5s';
             
-            // Convert canvas to blob with guaranteed browser support
+            // Add flash animation
+            const style = document.createElement('style');
+            style.textContent = `
+            @keyframes flash {
+                0% { opacity: 0.8; }
+                100% { opacity: 0; }
+            }`;
+            document.head.appendChild(style);
+            
+            // Add flash effect to camera container
+            cameraContainer.appendChild(flashEffect);
+            
+            // Remove flash effect after animation
+            setTimeout(() => {
+                cameraContainer.removeChild(flashEffect);
+            }, 500);
+            
+            // Convert canvas to blob with proper error handling
             try {
                 canvas.toBlob(
                     blob => {
@@ -313,12 +383,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             fallbackCapturePhoto(canvas);
                             return;
                         }
-                        console.log("Blob created successfully, size:", blob.size);
+                        
+                        console.log("Photo captured successfully, blob size:", blob.size);
+                        
+                        // First stop the camera to prevent further captures
                         stopCamera();
+                        
+                        // Then handle the captured image
                         handleImageUpload(blob);
                     }, 
                     'image/jpeg', 
-                    0.8
+                    0.85 // Higher quality for better results
                 );
             } catch (blobError) {
                 console.error('Error in canvas.toBlob:', blobError);
@@ -509,4 +584,85 @@ document.addEventListener('DOMContentLoaded', () => {
         resultImage.src = '';
         currentImageUrl = null;
     }
+    
+    // Add client-side telemetry for Azure Static Web Apps
+    function logEvent(eventName, properties = {}) {
+        if (navigator.sendBeacon) {
+            try {
+                const data = JSON.stringify({
+                    name: eventName,
+                    properties: {
+                        ...properties,
+                        userAgent: navigator.userAgent,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+                navigator.sendBeacon('/api/log-event', data);
+            } catch (e) {
+                console.error('Error logging event:', e);
+            }
+        }
+    }
+    
+    // Monitor for visibility changes to handle tab/app switching properly
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && stream) {
+            // User switched away from the app, pause camera for privacy/performance
+            console.log('Page hidden, pausing camera to conserve resources');
+            // Don't stop the camera completely, just pause video tracks
+            stream.getVideoTracks().forEach(track => {
+                track.enabled = false;
+            });
+        } else if (!document.hidden && stream) {
+            // User returned to the app, resume camera
+            console.log('Page visible again, resuming camera');
+            stream.getVideoTracks().forEach(track => {
+                track.enabled = true;
+            });
+        }
+    });
+    
+    // Detect low memory conditions which could affect camera performance
+    if ('memory' in performance) {
+        setInterval(() => {
+            const memory = performance.memory;
+            if (memory.usedJSHeapSize > memory.jsHeapSizeLimit * 0.8 && stream) {
+                console.warn('High memory usage detected, releasing resources');
+                stopCamera();
+                alert('Memory usage is high. Camera has been stopped to improve performance.');
+            }
+        }, 30000); // Check every 30 seconds
+    }
+    
+    // Add graceful recovery for camera errors
+    window.addEventListener('online', function() {
+        // If connection was restored and camera had previously failed
+        if (document.querySelector('.camera-error') && !stream) {
+            console.log('Network connection restored, retrying camera');
+            startCamera();
+        }
+    });
+    
+    // Handle device orientation changes for optimal camera view
+    window.addEventListener('orientationchange', function() {
+        if (stream) {
+            // Give time for the orientation to complete
+            setTimeout(() => {
+                console.log('Orientation changed, optimizing camera view');
+                
+                // Get current track settings
+                const videoTrack = stream.getVideoTracks()[0];
+                const settings = videoTrack.getSettings();
+                
+                // Check if we need to adjust constraints based on new orientation
+                if ((window.innerWidth > window.innerHeight && settings.width < settings.height) ||
+                    (window.innerWidth < window.innerHeight && settings.width > settings.height)) {
+                    
+                    // Only restart camera if needed for better orientation
+                    console.log('Restarting camera with optimized orientation');
+                    startCamera(currentFacingMode);
+                }
+            }, 300);
+        }
+    });
 });
